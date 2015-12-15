@@ -1,0 +1,27 @@
+{
+  "name": "HomeAutomation",
+  "version": "1.0.0",
+  "description": "Casa Domotica",
+  "author": "Irving Gonzalez <ialexis93@gmail.com>",
+  "engines": {
+    "node": "0.12.x"
+  },
+  "dependencies": {
+    "body-parser": "1.12.x",
+    "cli-color": "^1.0.0",
+    "date-format": "0.0.2",
+    "cookie-parser": "1.3.x",
+    "ejs": "^2.3.4",
+    "express": "4.12.x",
+    "express-session": "1.10.x",
+    "js-sha512": "^0.2.2",
+    "johnny-five": "latest",
+    "method-override": "2.3.x",
+    "mysql": "^2.6.1", 
+    "underscore": "^1.8.3"
+  },
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  }
+}
