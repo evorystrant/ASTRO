@@ -120,9 +120,8 @@ var isAzimutMoving = false;
 var lastTiltMovement = 0;
 var isTiltMoving = false;
 
-router.get("/azimut/:azimut/tilt/:tilt", function (request, response) {
+router.post("/moverA", function (request, response) {
     log(request); 
-    
     if(boardReady && !isAzimutMoving && !isTiltMoving){
     	response.json({msg: "movimiento en proceso"});
 
@@ -130,7 +129,7 @@ router.get("/azimut/:azimut/tilt/:tilt", function (request, response) {
     	azimutPulsosCount = 0;
     	isAzimutMoving = true;
 
-    	var gradosAzimut = request.params.azimut;  // Valor en gradosAzimut
+    	var gradosAzimut = request.body.azimut;  // Valor en gradosAzimut
 		gradosAzimut -= lastAzimutMovement;
 
 		var movimientoEnPulsosAzimut = Math.abs(Math.round(gradosAzimut / relacionAzimut));
@@ -154,7 +153,7 @@ router.get("/azimut/:azimut/tilt/:tilt", function (request, response) {
 		tiltPulsosCount = 0;
     	isTiltMoving = true;
 
-    	var gradosTilt = request.params.tilt;  // Valor en gradosTilt    	
+    	var gradosTilt = request.body.tilt;  // Valor en gradosTilt    	
 		gradosTilt -= lastTiltMovement;
 
 		var movimientoEnPulsosTilt = Math.abs(Math.round(gradosTilt / relacionTilt));
