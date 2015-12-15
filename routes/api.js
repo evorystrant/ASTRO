@@ -120,63 +120,61 @@ var isAzimutMoving = false;
 var lastTiltMovement = 0;
 var isTiltMoving = false;
 
-router.get("/azimut/:grados", function (request, response) {
+router.get("/azimut/:azimut/tilt/:tilt", function (request, response) {
     log(request); 
-    if(boardReady && !isAzimutMoving){
+    
+    if(boardReady && !isAzimutMoving && !isTiltMoving){
+    	response.json({msg: "movimiento en proceso"});
+
+    	//Movimiento azimut
     	azimutPulsosCount = 0;
     	isAzimutMoving = true;
 
-    	var grados = request.params.grados;  // Valor en grados    	
-		grados -= lastAzimutMovement;
+    	var gradosAzimut = request.params.azimut;  // Valor en gradosAzimut
+		gradosAzimut -= lastAzimutMovement;
 
-		var movimientoEnPulsos = Math.abs(Math.round(grados / relacionAzimut));
-		
-		var pinAzimut = (grados > 0) ? new five.Pin(pinAzimutP) : new five.Pin(pinAzimutN);
+		var movimientoEnPulsosAzimut = Math.abs(Math.round(gradosAzimut / relacionAzimut));
+		var pinAzimut = (gradosAzimut > 0) ? new five.Pin(pinAzimutP) : new five.Pin(pinAzimutN);
 		five.Pin.write(pinAzimut, 1);
-		var timer = setInterval(function(){
-			if(movimientoEnPulsos == azimutPulsosCount){
+		var timerAzimut = setInterval(function(){
+			if(movimientoEnPulsosAzimut == azimutPulsosCount){
 				console.log("movimiento azimut terminado");
 				five.Pin.write(pinAzimut, 0);
-				clearInterval(timer);
+				clearInterval(timerAzimut);
 				azimutPulsosCount = 0;
     	
-				lastAzimutMovement = grados;
+				lastAzimutMovement = gradosAzimut;
 				isAzimutMoving = false;
 			}   
 		},100);
-    }else{
-    	console.log("Azimut se encuentra en movimiento")
-    }
-});
 
 
-router.get("/tilt/:grados", function (request, response) {
-    log(request);
+		//Movimiento Tilt
 
-    if(boardReady && !isTiltMoving){
-    	tiltPulsosCount = 0;
+		tiltPulsosCount = 0;
     	isTiltMoving = true;
 
-    	var grados = request.params.grados;  // Valor en grados    	
-		grados -= lastTiltMovement;
+    	var gradosTilt = request.params.tilt;  // Valor en gradosTilt    	
+		gradosTilt -= lastTiltMovement;
 
-		var movimientoEnPulsos = Math.abs(Math.round(grados / relacionTilt));
-		
-		var pinTilt = (grados > 0) ? new five.Pin(pinTiltP) : new five.Pin(pinTiltN);
+		var movimientoEnPulsosTilt = Math.abs(Math.round(gradosTilt / relacionTilt));
+		var pinTilt = (gradosTilt > 0) ? new five.Pin(pinTiltP) : new five.Pin(pinTiltN);
 		five.Pin.write(pinTilt, 1);
-		var timer = setInterval(function(){
-			if(movimientoEnPulsos == tiltPulsosCount){
+		var timerTilt = setInterval(function(){
+			if(movimientoEnPulsosTilt == tiltPulsosCount){
 				console.log("movimiento tilt terminado");
 				five.Pin.write(pinTilt, 0);
-				clearInterval(timer);
+				clearInterval(timerTilt);
 				tiltPulsosCount = 0;
-    			lastTiltMovement = grados;
+    			lastTiltMovement = gradosTilt;
 				isTiltMoving = false;
 			}   
 		},100);
+
     }else{
-    	console.log("Tilt se encuentra en movimiento")
-    } 
+    	response.json({msg: "Azimut o tilt se encuentra en movimiento"});
+    	console.log("Azimut o tilt se encuentra en movimiento")
+    }
 });
 
 
