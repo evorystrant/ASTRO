@@ -19,10 +19,10 @@ var pinAzimutN = 5;
 var pinTiltP = 6;
 var pinTiltN = 7;
 
-var pinLectorPulsosAzimut = 8;
-var pinLectorPulsosTilt = 9;
+var pinLectorPulsosAzimut = 1;
+var pinLectorPulsosTilt = 2;
 
-//Relacion =  PULSOS / GRADOS
+//Relacion =  GRADOS / PULSOS
 var relacionAzimut = 90/40;
 var relacionTilt = 65/21;
 
@@ -48,14 +48,18 @@ var pulsosReaderAzimutInit = (function(){
 	var active = 0;
 	return function(){
 		var pulsosReader = new five.Pin(pinLectorPulsosAzimut);
-		pulsosReader.read(function(error, value) {
+		var pinLed = new five.Pin(13);
+				
+		pulsosReader.analogRead(function(value) {
 			if(value != active){
 				active = value;
-				if(value == 1){
-					azimutPulsosCount++; 
+				if(value >= 512){
+					azimutPulsosCount++;  
+					console.log("azimutPulsosCount: " + azimutPulsosCount);
 				}
 			}
 		});
+
 		console.log("Lector de pulsos Azimut ready");
 	};
 })();
@@ -66,11 +70,12 @@ var pulsosReaderTiltInit = (function(){
 	var active = 0;
 	return function(){
 		var pulsosReader = new five.Pin(pinLectorPulsosTilt);
-		pulsosReader.read(function(error, value) {
+		pulsosReader.analogRead(function(value) {
 			if(value != active){
 				active = value;
-				if(value == 1){
+				if(value >= 512){
 					tiltPulsosCount++;
+					console.log("tiltPulsosCount: " + tiltPulsosCount);
 				}
 			}
 		});
@@ -90,6 +95,10 @@ board.on("ready", function () {
 	this.pinMode(pinAzimutN, five.Pin.OUTPUT);
 	this.pinMode(pinTiltP, five.Pin.OUTPUT);
 	this.pinMode(pinTiltN, five.Pin.OUTPUT);
+
+	this.pinMode(pinLectorPulsosAzimut, five.Pin.ANALOG);
+	this.pinMode(pinLectorPulsosTilt, five.Pin.ANALOG);
+
 	pulsosReaderAzimutInit();
 	pulsosReaderTiltInit();
 
@@ -131,10 +140,12 @@ router.post("/moverA", function (request, response) {
 
     	var gradosAzimut = request.body.azimut;  // Valor en gradosAzimut
 		gradosAzimut -= lastAzimutMovement;
-
 		var movimientoEnPulsosAzimut = Math.abs(Math.round(gradosAzimut / relacionAzimut));
 		var pinAzimut = (gradosAzimut > 0) ? new five.Pin(pinAzimutP) : new five.Pin(pinAzimutN);
-		five.Pin.write(pinAzimut, 1);
+		if(movimientoEnPulsosAzimut > 0){
+			five.Pin.write(pinAzimut, 1);
+		}
+
 		var timerAzimut = setInterval(function(){
 			if(movimientoEnPulsosAzimut == azimutPulsosCount){
 				console.log("movimiento azimut terminado");
@@ -149,7 +160,6 @@ router.post("/moverA", function (request, response) {
 
 
 		//Movimiento Tilt
-
 		tiltPulsosCount = 0;
     	isTiltMoving = true;
 
@@ -158,7 +168,10 @@ router.post("/moverA", function (request, response) {
 
 		var movimientoEnPulsosTilt = Math.abs(Math.round(gradosTilt / relacionTilt));
 		var pinTilt = (gradosTilt > 0) ? new five.Pin(pinTiltP) : new five.Pin(pinTiltN);
-		five.Pin.write(pinTilt, 1);
+		if(movimientoEnPulsosTilt > 0){
+			five.Pin.write(pinTilt, 1);
+		}
+
 		var timerTilt = setInterval(function(){
 			if(movimientoEnPulsosTilt == tiltPulsosCount){
 				console.log("movimiento tilt terminado");
