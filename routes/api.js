@@ -20,10 +20,13 @@ var pinTiltP = 6;
 var pinTiltN = 7;
 
 var pinLectorPulsosAzimut = 1;
-var pinLectorPulsosTilt = 2;
+var pinLectorPulsosTilt = 5;
 
 //Relacion =  GRADOS / PULSOS
-var relacionAzimut = 90/40;
+// var relacionAzimut = 90/40;
+var relacionAzimut = 72/90;
+
+
 var relacionTilt = 65/21;
 
 // Azimut 40 pulsos por 90 grados de movimiento 
@@ -38,52 +41,22 @@ var relacionTilt = 65/21;
 //               ARDUINO COMMUNICATION
 //==========================================================
 var five = require('johnny-five');
-var board = new five.Board();
-var toggleState = false;
+var board = new five.Board(); 
 var boardReady = false;
 
-// LECTOR DE PULSOS AZIMUT
-var azimutPulsosCount = 0;
-var pulsosReaderAzimutInit = (function(){
-	var active = 0;
-	return function(){
-		var pulsosReader = new five.Pin(pinLectorPulsosAzimut);
-		var pinLed = new five.Pin(13);
-				
-		pulsosReader.analogRead(function(value) {
-			if(value != active){
-				active = value;
-				if(value >= 512){
-					azimutPulsosCount++;  
-					console.log("azimutPulsosCount: " + azimutPulsosCount);
-				}
-			}
-		});
-
-		console.log("Lector de pulsos Azimut ready");
-	};
-})();
-
-// LECTOR DE PULSOS TILT
-var tiltPulsosCount = 0;
-var pulsosReaderTiltInit = (function(){
-	var active = 0;
-	return function(){
-		var pulsosReader = new five.Pin(pinLectorPulsosTilt);
-		pulsosReader.analogRead(function(value) {
-			if(value != active){
-				active = value;
-				if(value >= 512){
-					tiltPulsosCount++;
-					console.log("tiltPulsosCount: " + tiltPulsosCount);
-				}
-			}
-		});
-		console.log("Lector de pulsos Tilt ready");
-	};
-})();
 
 
+// VARIABLES DE AZIMUT
+var azimutPulsosCount = 0; 
+var azimutActive = 0;
+var prevVoltageAzimut = 0;
+
+
+
+// VARIABLES DE TILT
+var tiltPulsosCount = 0; 
+var tiltActive = 0;
+var prevVoltageTilt = 0;
 
 
 
@@ -96,22 +69,52 @@ board.on("ready", function () {
 	this.pinMode(pinTiltP, five.Pin.OUTPUT);
 	this.pinMode(pinTiltN, five.Pin.OUTPUT);
 
-	this.pinMode(pinLectorPulsosAzimut, five.Pin.ANALOG);
-	this.pinMode(pinLectorPulsosTilt, five.Pin.ANALOG);
 
-	pulsosReaderAzimutInit();
-	pulsosReaderTiltInit();
+	// //Lector de pulsos Azimut
+	this.pinMode(pinLectorPulsosAzimut, five.Pin.ANALOG);
+	this.analogRead(pinLectorPulsosAzimut, function(voltage) {
+		if(voltage != prevVoltageAzimut){
+			if(voltage > 1015 && (voltage > prevVoltageAzimut) && !azimutActive){
+				azimutActive = true;
+				azimutPulsosCount++;  
+				console.log("azimut count: %s | voltage: %s ", azimutPulsosCount, voltage);
+				
+			}else if(voltage < (prevVoltageAzimut - 3)){
+				azimutActive = false;
+			}
+			prevVoltageAzimut = voltage;
+		}
+		// console.log("voltage azimut: %s", voltage);
+	});
+
+
+
+	// //Lector de pulsos Azimut
+	this.pinMode(pinLectorPulsosTilt, five.Pin.ANALOG);
+	this.analogRead(pinLectorPulsosTilt, function(voltage) {
+		if(voltage != prevVoltageTilt){
+			if(voltage > 1015 && (voltage > prevVoltageTilt) && !tiltActive){
+				tiltActive = true;
+				tiltPulsosCount++;  
+				console.log("tilt count: %s | voltage: %s ", tiltPulsosCount, voltage);
+				
+			}else if(voltage < (prevVoltageTilt - 3)){
+				tiltActive = false;
+			}
+
+			prevVoltageTilt = voltage;
+		}
+		// console.log("voltage tilt: %s", voltage);
+	});
+
 
 	this.pinMode(13, five.Pin.OUTPUT);
 	this.digitalWrite(13,1);
-
-
 });
 
 
 
-
-
+ 
 
 
 
@@ -147,8 +150,8 @@ router.post("/moverA", function (request, response) {
 		}
 
 		var timerAzimut = setInterval(function(){
-			if(movimientoEnPulsosAzimut == azimutPulsosCount){
-				console.log("movimiento azimut terminado");
+			if(movimientoEnPulsosAzimut <= azimutPulsosCount){
+				console.log("movimiento azimut terminado, count " + movimientoEnPulsosAzimut);
 				five.Pin.write(pinAzimut, 0);
 				clearInterval(timerAzimut);
 				azimutPulsosCount = 0;
@@ -156,7 +159,9 @@ router.post("/moverA", function (request, response) {
 				lastAzimutMovement = gradosAzimut;
 				isAzimutMoving = false;
 			}   
-		},100);
+		},50);
+
+
 
 
 		//Movimiento Tilt
@@ -173,15 +178,15 @@ router.post("/moverA", function (request, response) {
 		}
 
 		var timerTilt = setInterval(function(){
-			if(movimientoEnPulsosTilt == tiltPulsosCount){
-				console.log("movimiento tilt terminado");
+			if(movimientoEnPulsosTilt <= tiltPulsosCount){
+				console.log("movimiento tilt terminado, count " + tiltPulsosCount);
 				five.Pin.write(pinTilt, 0);
 				clearInterval(timerTilt);
 				tiltPulsosCount = 0;
     			lastTiltMovement = gradosTilt;
 				isTiltMoving = false;
 			}   
-		},100);
+		},50);
 
     }else{
     	response.json({msg: "Azimut o tilt se encuentra en movimiento"});
