@@ -1,62 +1,68 @@
+//==========================================================
+//               		CONFIGURACION
+//==========================================================
 
-/*
-	PIN 4 = Azimut horaria/positiva
-	PIN 5 = Azimut antohoraria/negativa
+// CONFIGURACION de Pines
+var pinAzimutP = 5;
+var pinAzimutN = 6;
+var pinTiltP = 10;
+var pinTiltN = 11;
 
-	PIN 6 = Tilt horaria/positiva
-	PIN 7 = Tilt antohoraria/negativa
+var pinLectorPulsosAzimut = "A1";
+var pinLectorPulsosTilt = "A5";
 
-	PIN 8 = LECTOR DE PULSOS AZIMUT
-	PIN 9 = LECTOR DE PULSOS TILT
-	
-	|
-	V
-*/
-
-var pinAzimutP = 4;
-var pinAzimutN = 5;
-
-var pinTiltP = 6;
-var pinTiltN = 7;
-
-var pinLectorPulsosAzimut = 1;
-var pinLectorPulsosTilt = 5;
-
-//Relacion =  GRADOS / PULSOS
-// var relacionAzimut = 90/40;
+// Configuracion de Relacion =  Pulsos Por grado ( Pulsos/Grados)
 var relacionAzimut = 72/90;
-
-
 var relacionTilt = 65/21;
 
-// Azimut 40 pulsos por 90 grados de movimiento 
-// 2.25 grados por cada pulso de movimiento
+// Configuracion de Sensores
+var frequenciaDeMuestreo = 1 	// Milisegindo (Maxima muestra posible es de 10 ms)
+var thresholdDeCambio = 5 		// 0-1023 - Jugar con esto si se detectan demasiados pulsos
+var voltajeMinimoDeAlto = 1000 	// 0 -1023 - Jugar con esto si se detectan demasiados o muy pocos pulsos
 
-// Tilt 21 pulsos 65 grados.
-// 3.09523 grados por cada pulso de movimiento
+// Configuracion de Motores
+var velocidadMaxima = 255 		//1-255 - Representa 0 a 5 Volts en PWD
+var velocidadMinima = 127 		//1-255 - Representa 0 a 5 Volts en PWD
 
 
+//==========================================================
+//               VARIABLES DE ESTADO
+//==========================================================
+
+// AZIMUT 
+var azimutState = 	{ 	pulseCount : 0,
+						prevVoltage : 0,
+						grades : 0,
+						isOn : false,
+						isActive : false
+					};
+
+// TILT 
+var tiltState = 	{ 	pulseCount : 0,
+						prevVoltage : 0,
+						grades : 0,
+						isOn : false,
+						isActive : false
+					};			
+
+var boardReady = false;
+
+//==========================================================
+//               VARIABLES DE Control
+//==========================================================
+
+var motorTilt, sensorTilt;
+var mototAzimut, sensorAzimut;
 
 //==========================================================
 //               ARDUINO COMMUNICATION
 //==========================================================
 var five = require('johnny-five');
+var log = require("../libs/log.js");
+var express = require('express');
+
 var board = new five.Board(); 
-var boardReady = false;
-
-
-
-// VARIABLES DE AZIMUT
-var azimutPulsosCount = 0; 
-var azimutActive = 0;
-var prevVoltageAzimut = 0;
-
-
-
-// VARIABLES DE TILT
-var tiltPulsosCount = 0; 
-var tiltActive = 0;
-var prevVoltageTilt = 0;
+var router = express.Router(); 
 
 
 
@@ -64,127 +70,105 @@ board.on("ready", function () {
 	console.log('Board ready');
 	boardReady = true;
 
-	this.pinMode(pinAzimutP, five.Pin.OUTPUT);
-	this.pinMode(pinAzimutN, five.Pin.OUTPUT);
-	this.pinMode(pinTiltP, five.Pin.OUTPUT);
-	this.pinMode(pinTiltN, five.Pin.OUTPUT);
+	mototAzimut = new five.Motor({ pins: [pinAzimutP, pinAzimutN], invertPWM:true });
+	mototTilt 	= new five.Motor({ pins: [pinTiltP, pinTiltN], invertPWM:true });
 
+	sensorAzimut	= new five.Sensor({ pin: pinLectorPulsosAzimut, freq: frequenciaDeMuestreo, threshold: thresholdDeCambio });
+	sensorTilt		= new five.Sensor({ pin: pinLectorPulsosTilt, freq: frequenciaDeMuestreo, threshold: thresholdDeCambio });
 
-	// //Lector de pulsos Azimut
-	this.pinMode(pinLectorPulsosAzimut, five.Pin.ANALOG);
-	this.analogRead(pinLectorPulsosAzimut, function(voltage) {
-		if(voltage != prevVoltageAzimut){
-			if(voltage > 1015 && (voltage > prevVoltageAzimut) && !azimutActive){
-				azimutActive = true;
-				azimutPulsosCount++;  
-				console.log("azimut count: %s | voltage: %s ", azimutPulsosCount, voltage);
-				
-			}else if(voltage < (prevVoltageAzimut - 3)){
-				azimutActive = false;
-			}
-			prevVoltageAzimut = voltage;
-		}
-		// console.log("voltage azimut: %s", voltage);
+	// sensorAzimut.within([ 1000, 1023 ], function() {
+	sensorAzimut.on("change", function() {
+		var currentV = this.value
+		if (currentV > voltajeMinimoDeAlto)
+			{	
+				// console.log("Detected a Change voltage on Azimut: %s ", currentV);
+				if 		( currentV > azimutState.prevVoltage && !azimutState.isOn && azimutState.isActive)
+							{ 	
+								azimutState.isOn = true; 	
+								azimutState.prevVoltage = currentV; 
+								azimutState.pulseCount++ 
+								console.log("azimut count up: %s with voltage %s ", azimutState.pulseCount, currentV);
+							}
+				else if ( currentV < azimutState.prevVoltage && azimutState.isOn && azimutState.isActive)
+							{ 
+								azimutState.isOn = false; 
+								azimutState.prevVoltage = currentV; 
+								// console.log("azimut count down: %s with voltage %s ", azimutState.pulseCount, currentV);
+							}
+			};
+		
 	});
 
-
-
-	// //Lector de pulsos Azimut
-	this.pinMode(pinLectorPulsosTilt, five.Pin.ANALOG);
-	this.analogRead(pinLectorPulsosTilt, function(voltage) {
-		if(voltage != prevVoltageTilt){
-			if(voltage > 1015 && (voltage > prevVoltageTilt) && !tiltActive){
-				tiltActive = true;
-				tiltPulsosCount++;  
-				console.log("tilt count: %s | voltage: %s ", tiltPulsosCount, voltage);
-				
-			}else if(voltage < (prevVoltageTilt - 3)){
-				tiltActive = false;
-			}
-
-			prevVoltageTilt = voltage;
-		}
-		// console.log("voltage tilt: %s", voltage);
+	sensorTilt.on("change", function() {
+		var currentV = this.value
+		if (currentV > voltajeMinimoDeAlto)
+			{	
+				// console.log("Detected a Change voltage on Tilt: %s ", currentV);
+				if 		( currentV > tiltState.prevVoltage && !tiltState.isOn && tiltState.isActive)
+							{ 	
+								tiltState.isOn = true; 	
+								tiltState.prevVoltage = currentV; 
+								tiltState.pulseCount++ 
+								console.log("azimut count up: %s with voltage %s ", azimutState.pulseCount, currentV);
+							}
+				else if ( currentV < tiltState.prevVoltage && tiltState.isOn && tiltState.isActive)
+							{ 
+								tiltState.isOn = false; 
+								tiltState.prevVoltage = currentV; 
+								// console.log("azimut count down: %s with voltage %s ", azimutState.pulseCount, currentV);
+							}
+			};
+		
 	});
-
-
-	this.pinMode(13, five.Pin.OUTPUT);
-	this.digitalWrite(13,1);
 });
 
 
-
- 
-
-
-
-
-/*
-*	API
-*/
-var express = require('express');
-var router = express.Router(); 
-var log = require("../libs/log.js");
-
-var lastAzimutMovement = 0;
-var isAzimutMoving = false;
-
-var lastTiltMovement = 0;
-var isTiltMoving = false;
-
 router.post("/moverA", function (request, response) {
     log(request); 
-    if(boardReady && !isAzimutMoving && !isTiltMoving){
-    	response.json({msg: "movimiento en proceso"});
+    if(boardReady && !azimutState.isActive && !tiltState.isActive){
+    	response.json({msg: "Iniciando movimiento"});
 
-    	//Movimiento azimut
-    	azimutPulsosCount = 0;
-    	isAzimutMoving = true;
+    	azimutState.isActive = true;
 
     	var gradosAzimut = request.body.azimut;  // Valor en gradosAzimut
-		gradosAzimut -= lastAzimutMovement;
-		var movimientoEnPulsosAzimut = Math.abs(Math.round(gradosAzimut / relacionAzimut));
-		var pinAzimut = (gradosAzimut > 0) ? new five.Pin(pinAzimutP) : new five.Pin(pinAzimutN);
-		if(movimientoEnPulsosAzimut > 0){
-			five.Pin.write(pinAzimut, 1);
-		}
+
+		gradosAzimut -= azimutState.grades;
+		var movimientoEnPulsosAzimut = Math.abs(Math.round(gradosAzimut * relacionAzimut));
+		if(gradosAzimut > 0)  	{ mototAzimut.forward(velocidadMinima); } 
+		else 					{ mototAzimut.reverse(velocidadMaxima); };
+		// console.log("movimiento azimut empezando hacia " + request.body.azimut + ", Ultimo " + lastAzimutMovement);
 
 		var timerAzimut = setInterval(function(){
-			if(movimientoEnPulsosAzimut <= azimutPulsosCount){
+			if(movimientoEnPulsosAzimut <= azimutState.pulseCount){
 				console.log("movimiento azimut terminado, count " + movimientoEnPulsosAzimut);
-				five.Pin.write(pinAzimut, 0);
+				mototAzimut.stop();
 				clearInterval(timerAzimut);
-				azimutPulsosCount = 0;
+				azimutState.pulseCount = 0;
     	
-				lastAzimutMovement = gradosAzimut;
-				isAzimutMoving = false;
+				azimutState.grades = request.body.azimut;
+				azimutState.isActive = false;
 			}   
 		},50);
 
+		tiltState.isActive = true;
 
+    	var gradosTilt = request.body.tilt;  // Valor en gradosAzimut
 
-
-		//Movimiento Tilt
-		tiltPulsosCount = 0;
-    	isTiltMoving = true;
-
-    	var gradosTilt = request.body.tilt;  // Valor en gradosTilt    	
-		gradosTilt -= lastTiltMovement;
-
-		var movimientoEnPulsosTilt = Math.abs(Math.round(gradosTilt / relacionTilt));
-		var pinTilt = (gradosTilt > 0) ? new five.Pin(pinTiltP) : new five.Pin(pinTiltN);
-		if(movimientoEnPulsosTilt > 0){
-			five.Pin.write(pinTilt, 1);
-		}
+		gradosTilt -= tiltState.grades;
+		var movimientoEnPulsosTilt = Math.abs(Math.round(gradosTilt * relacionTilt));
+		if(gradosTilt > 0)  	{ mototTilt.forward(velocidadMinima); } 
+		else 					{ mototTilt.reverse(velocidadMaxima); };
+		// console.log("movimiento azimut empezando hacia " + request.body.azimut + ", Ultimo " + lastAzimutMovement);
 
 		var timerTilt = setInterval(function(){
-			if(movimientoEnPulsosTilt <= tiltPulsosCount){
-				console.log("movimiento tilt terminado, count " + tiltPulsosCount);
-				five.Pin.write(pinTilt, 0);
+			if(movimientoEnPulsosTilt <= tiltState.pulseCount){
+				console.log("movimiento tilt terminado, count " + movimientoEnPulsosTilt);
+				mototTilt.stop();
 				clearInterval(timerTilt);
-				tiltPulsosCount = 0;
-    			lastTiltMovement = gradosTilt;
-				isTiltMoving = false;
+				tiltState.pulseCount = 0;
+    	
+				tiltState.grades = request.body.tilt;
+				tiltState.isActive = false;
 			}   
 		},50);
 
