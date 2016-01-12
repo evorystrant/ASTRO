@@ -12,17 +12,17 @@ var pinLectorPulsosAzimut = "A1";
 var pinLectorPulsosTilt = "A5";
 
 // Configuracion de Relacion =  Pulsos Por grado ( Pulsos/Grados)
-var relacionAzimut = 72/90;
+var relacionAzimut = 104/90;
 var relacionTilt = 65/21;
 
 // Configuracion de Sensores
-var frequenciaDeMuestreo = 1 	// Milisegindo (Maxima muestra posible es de 10 ms)
-var thresholdDeCambio = 5 		// 0-1023 - Jugar con esto si se detectan demasiados pulsos
-var voltajeMinimoDeAlto = 1000 	// 0 -1023 - Jugar con esto si se detectan demasiados o muy pocos pulsos
+var frequenciaDeMuestreo = 1; 	// Milisegindo (Maxima muestra posible es de 10 ms)
+var thresholdDeCambio = 1; 		// 0-1023 - Jugar con esto si se detectan demasiados pulsos
+var voltajeMinimoDeAlto = 900; 	// 0 -1023 - Jugar con esto si se detectan demasiados o muy pocos pulsos
 
 // Configuracion de Motores
-var velocidadMaxima = 255 		//1-255 - Representa 0 a 5 Volts en PWD
-var velocidadMinima = 127 		//1-255 - Representa 0 a 5 Volts en PWD
+var velocidadMaxima = 255;		//1-255 - Representa 0 a 5 Volts en PWD
+var velocidadMinima = 255; 		//1-255 - Representa 0 a 5 Volts en PWD
 
 
 //==========================================================
@@ -73,51 +73,54 @@ board.on("ready", function () {
 	mototAzimut = new five.Motor({ pins: [pinAzimutP, pinAzimutN], invertPWM:true });
 	mototTilt 	= new five.Motor({ pins: [pinTiltP, pinTiltN], invertPWM:true });
 
+	mototAzimut.stop();
+	mototTilt.stop();
+
 	sensorAzimut	= new five.Sensor({ pin: pinLectorPulsosAzimut, freq: frequenciaDeMuestreo, threshold: thresholdDeCambio });
 	sensorTilt		= new five.Sensor({ pin: pinLectorPulsosTilt, freq: frequenciaDeMuestreo, threshold: thresholdDeCambio });
 
 	// sensorAzimut.within([ 1000, 1023 ], function() {
 	sensorAzimut.on("change", function() {
-		var currentV = this.value
-		if (currentV > voltajeMinimoDeAlto)
-			{	
+		var currentV = this.value;
+		// if (currentV > voltajeMinimoDeAlto)
+		// 	{	
 				// console.log("Detected a Change voltage on Azimut: %s ", currentV);
+							
 				if 		( currentV > azimutState.prevVoltage && !azimutState.isOn && azimutState.isActive)
 							{ 	
-								azimutState.isOn = true; 	
-								azimutState.prevVoltage = currentV; 
-								azimutState.pulseCount++ 
-								console.log("azimut count up: %s with voltage %s ", azimutState.pulseCount, currentV);
+								azimutState.isOn = true; 
+								// azimutState.prevVoltage = currentV; 
 							}
 				else if ( currentV < azimutState.prevVoltage && azimutState.isOn && azimutState.isActive)
 							{ 
-								azimutState.isOn = false; 
-								azimutState.prevVoltage = currentV; 
+								azimutState.isOn = false; 	
+								azimutState.pulseCount++; 
+								console.log("azimut count up: %s with voltage %s ", azimutState.pulseCount, currentV);
 								// console.log("azimut count down: %s with voltage %s ", azimutState.pulseCount, currentV);
 							}
-			};
+				azimutState.prevVoltage = currentV; 
+			// };
 		
 	});
 
 	sensorTilt.on("change", function() {
-		var currentV = this.value
+		var currentV = this.value;
 		if (currentV > voltajeMinimoDeAlto)
 			{	
 				// console.log("Detected a Change voltage on Tilt: %s ", currentV);
 				if 		( currentV > tiltState.prevVoltage && !tiltState.isOn && tiltState.isActive)
 							{ 	
-								tiltState.isOn = true; 	
-								tiltState.prevVoltage = currentV; 
-								tiltState.pulseCount++ 
-								console.log("azimut count up: %s with voltage %s ", azimutState.pulseCount, currentV);
+								tiltState.isOn = true; 
+								// console.log("azimut count down: %s with voltage %s ", azimutState.pulseCount, currentV);
 							}
 				else if ( currentV < tiltState.prevVoltage && tiltState.isOn && tiltState.isActive)
 							{ 
-								tiltState.isOn = false; 
-								tiltState.prevVoltage = currentV; 
-								// console.log("azimut count down: %s with voltage %s ", azimutState.pulseCount, currentV);
+								tiltState.isOn = false; 	
+								tiltState.pulseCount++ 
+								console.log("azimut count up: %s with voltage %s ", azimutState.pulseCount, currentV); 
 							}
 			};
+			tiltState.prevVoltage = currentV; 
 		
 	});
 });
