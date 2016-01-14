@@ -64,6 +64,11 @@ var express = require('express');
 var board = new five.Board(); 
 var router = express.Router(); 
 
+var normalizarGrados = function (grados) 	{ 	var normalizado; 
+												while (grados >= 360)  	{ normalizado = grados - 360; };
+												while (grados <= -360)  { normalizado = grados + 360; };
+											};
+	
 
 
 board.on("ready", function () {
