@@ -3,10 +3,10 @@
 //==========================================================
 
 // CONFIGURACION de Pines
-var pinAzimutP = 5;
-var pinAzimutN = 6;
-var pinTiltP = 10;
-var pinTiltN = 11;
+var pinAzimutP = 7;
+var pinAzimutN = 8;
+var pinTiltP = 9;
+var pinTiltN = 10;
 
 var pinLectorPulsosAzimut = "A1";
 var pinLectorPulsosTilt = "A5";
@@ -51,6 +51,14 @@ var boardReady = false;
 //               VARIABLES DE Control
 //==========================================================
 
+var createDigitalMotor = function (ledP, ledN) 	{  var motor = 	{ 	pinP 	: ledP, 
+																	pinN 	: ledN,
+																	forward : function() { this.pinN.off(); this.pinP.on(); },
+																	reverse : function() { this.pinN.on(); 	this.pinP.off(); },
+																	stop 	: function() { this.pinN.off(); this.pinP.off(); }
+																};
+													return motor;
+												};
 var motorTilt, sensorTilt;
 var mototAzimut, sensorAzimut;
 
@@ -75,8 +83,8 @@ board.on("ready", function () {
 	console.log('Board ready');
 	boardReady = true;
 
-	mototAzimut = new five.Motor({ pins: [pinAzimutP, pinAzimutN], invertPWM:true });
-	mototTilt 	= new five.Motor({ pins: [pinTiltP, pinTiltN], invertPWM:true });
+	mototAzimut = createDigitalMotor ( new five.Led(pinAzimutP), new five.Led(pinAzimutN) );
+	mototTilt = createDigitalMotor ( new five.Led(pinTiltP), new five.Led(pinTiltN) );
 
 	mototAzimut.stop();
 	mototTilt.stop();
