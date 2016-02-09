@@ -54,23 +54,23 @@
                             <td>
                               <img src="assets/images/rosa/Rosa-de-los-Vientos_01.gif" style="width:11.25rem; height:11.25rem" alt=""></td>
                             <td>
-                              <img src="assets/images/rosa/Rosa-de-los-Vientos_02.gif" style="width:11.25rem; height:11.25rem" alt=""></td>
+                              <img src="assets/images/rosa/Rosa-de-los-Vientos_02.gif" style="width:11.25rem; height:11.25rem" alt="" onmousedown="moverTiF()" onmouseup="parar()"></td>
                             <td>
                               <img src="assets/images/rosa/Rosa-de-los-Vientos_03.gif" style="width:11.25rem; height:11.25rem" alt=""></td>
                           </tr>
                           <tr>
                             <td>
-                              <img src="assets/images/rosa/Rosa-de-los-Vientos_04.gif" style="width:11.25rem; height:11.25rem" alt=""></td>
+                              <img src="assets/images/rosa/Rosa-de-los-Vientos_04.gif" style="width:11.25rem; height:11.25rem" alt="" onmousedown="moverAziR()" onmouseup="parar()"></td>
                             <td>
                               <img src="assets/images/rosa/Rosa-de-los-Vientos_05.gif" style="width:11.25rem; height:11.25rem" alt=""></td>
                             <td>
-                              <img src="assets/images/rosa/Rosa-de-los-Vientos_06.gif" style="width:11.25rem; height:11.25rem" alt=""></td>
+                              <img src="assets/images/rosa/Rosa-de-los-Vientos_06.gif" style="width:11.25rem; height:11.25rem" alt="" onmousedown="moverAziF()" onmouseup="parar()"></td>
                           </tr>
                           <tr>
                             <td>
                               <img src="assets/images/rosa/Rosa-de-los-Vientos_07.gif" style="width:11.25rem; height:11.25rem" alt=""></td>
                             <td>
-                              <img src="assets/images/rosa/Rosa-de-los-Vientos_08.gif" style="width:11.25rem; height:11.25rem" alt=""></td>
+                              <img src="assets/images/rosa/Rosa-de-los-Vientos_08.gif" style="width:11.25rem; height:11.25rem" alt="" onmousedown="moverTiR()" onmouseup="parar()"></td>
                             <td>
                               <img src="assets/images/rosa/Rosa-de-los-Vientos_09.gif" style="width:11.25rem; height:11.25rem" alt=""></td>
                           </tr>
@@ -136,8 +136,39 @@
     post("/api/moverA", {azimut: azimut, tilt: tilt}, function(res){
       console.log(res);
     });
-  }
+  };
 
+  function moverAziF(){  
+    event.preventDefault(); 
+    post("/api/moverAziF", {}, function(res){
+      console.log(res);
+    });
+  };
+  function moverAziR(){  
+    event.preventDefault(); 
+    post("/api/moverAziR", {}, function(res){
+      console.log(res);
+    });
+  };
+  function moverTiF(){  
+    event.preventDefault(); 
+    post("/api/moverTiF", {}, function(res){
+      console.log(res);
+    });
+  };
+  function moverTiR(){  
+    event.preventDefault(); 
+    post("/api/moverTiR", {}, function(res){
+      console.log(res);
+    });
+  };
+
+  function parar(){  
+    event.preventDefault(); 
+    post("/api/parar", {}, function(res){
+      console.log(res);
+    });
+  };
 
   </script>
 
